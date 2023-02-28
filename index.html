@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Author: Cristion Dominguez -->
+    <!-- Date: 8 April 2022 -->
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+    <title>SOR Lighting</title>
+    <style>
+        body
+        {
+            background-color: #121212;
+        }
+        div
+        {
+            font-family: 'Times New Roman', Times, serif;
+            color: white;
+        }
+        table th, td
+        {
+            border: 1px solid;
+        }
+    </style>
+
+    <!-- Vertex Shader -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+    attribute vec4 vPosition;
+    attribute vec4 vNormal;
+
+    varying vec4 color;
+
+    uniform vec4 ambientColor, diffuseColor, specularColor;
+    uniform mat4 modelView;
+    uniform mat4 projection;
+    uniform vec4 lightPosition;
+    uniform float shininess; 
+    uniform bool isNormalLine;
+
+    void main()
+    {
+        // If the vertex does not belong to a normal line, follow the Phong illumination model.
+        // Otherwise, color the vertex white.
+        if (!isNormalLine)
+        {
+            // Compute lighting in eye coordinates.
+            vec3 pos = (modelView * vPosition).xyz;
+            vec3 light = lightPosition.xyz;
+            vec3 L = normalize( light - pos );
+
+            // Compute emission.
+            vec3 eyePoint = vec3(0.0, 0.0, 0.0);
+            vec3 E = normalize( eyePoint - pos );
+
+            // Caculate halfway vector.
+            vec3 H = normalize( L + E );
+            
+            // Transform vertex normal into eye coordinates.
+            vec3 N = normalize((modelView*vNormal).xyz);
+
+            // Compute terms in the Phong illumination equation.
+            vec4 ambient = ambientColor;
+
+            float Kd = max( dot(L, N), 0.0 );
+            vec4  diffuse = Kd*diffuseColor;
+
+            float Ks = pow( max(dot(N, H), 0.0), shininess );
+            vec4  specular = Ks * specularColor;
+            
+            if (dot(L, N) < 0.0)
+            {
+                specular = vec4(0.0, 0.0, 0.0, 1.0);
+            } 
+
+            // Add terms to acquire color.
+            color = ambient + diffuse + specular;
+            color.a = 1.0;
+        }
+        else
+        {
+            color = vec4(1, 1, 1, 1);
+            gl_PointSize = 10.0;
+        }
+        
+        gl_Position = projection * modelView * vPosition;
+    }
+    </script>
+
+    <!-- Fragment Shader -->
+    <script id="fragment-shader" type="x-shader/x-fragment">
+    precision mediump float;
+
+    // Color coming in
+    varying vec4 color;
+
+    void main()
+    {
+        gl_FragColor = color;
+    }
+    </script>
+
+    <!-- JS Utility Codes and Code Behind Interactivity -->
+    <script type="text/javascript" src="Common/webgl-utils.js"></script>
+    <script type="text/javascript" src="Common/initShaders.js"></script>
+    <script type="text/javascript" src="Common/MV.js"></script>
+    <script type="text/javascript" src="geometry.js"></script>
+    <script type="text/javascript" src="render.js"></script>
+</head>   
+
+<body>
+    <div>
+        <h1>Surfaces of Rotation Lighting</h1>
+        <h2>Drag left-click to rotate around objects. Drag right-click to zoom in and out.</h2>
+    </div>
+
+    <table >
+        <tr>
+            <td rowspan="2">
+                <canvas id='gl-canvas' width=512 height=512 style="border:2px solid #000000;">
+                    This browser does not support the HTML5 canvas element.
+                </canvas>
+            </td>
+
+            <td colspan="2">
+                <div>
+                    <label for="light-color">Light Color: </label>
+                        <select name="light-color" id="light-color-dropdown">
+                            <option value="white" selected>White</option>
+                            <option value="skyBlue">Sky Blue</option>
+                        </select>
+
+                    <br><br>
+
+                    World Coordinates:
+                    <br>
+                    X <input type="number" id="x-coordinate-input" min="-100" max="100" step="0.001" value="1">
+                    Y <input type="number" id="y-coordinate-input" min="-100" max="100" step="0.001" value="1">
+                    Z <input type="number" id="z-coordinate-input" min="-100" max="100" step="0.001" value="1">
+                    <br>
+                    <button id="light-relocate-button">Compel Light to Follow Viewer</button>
+
+                    <br><br>
+
+                    <button id="light-orbit-button">Orbit Light Around Object</button>
+
+                    <br><br>
+
+                    FOV:<br>
+                    10 <input type="range" id="fov-slider" min="10" max="100" step="1" value="60"> 100
+
+                    <br><br>
+
+                    <button id="display-normals-button">Display Surface Normals</button>
+                </div>
+            </td>
+        </tr>
+            <td>
+                <div>
+                    <label for="cylinder-checkbox">Display Cylinder</label>
+                    <input type="checkbox" id="cylinder-checkbox" name="cylinder-checkbox" checked>
+
+                    <br><br>
+
+                    <label for="cylinder-material">Cylinder Material: </label>
+                    <select name="cylinder-material" id="cylinder-material-dropdown">
+                        <option value="gold">Gold</option>
+                        <option value="mauve">Mauve</option>
+                        <option value="pthalo" selected>Pthalo</option>
+                        <option value="silver">Silver</option>
+                    </select>
+
+                    <br><br>
+
+                    Shininess:<br>
+                    1 <input type="range" id="cylinder-shininess-slider" min="1" max="100" step="1" value="5"> 100
+
+                </div>
+            </td>
+
+            <td>
+                <div>
+                    <label for="ring-checkbox">Display Rings</label>
+                    <input type="checkbox" id="ring-checkbox" name="ring-checkbox" checked>
+
+                    <br><br>
+
+                    Ring Amount:
+                    1 <input type="range" id="ring-amount-slider" min="1" max="20" step="1" value="10"> 20
+
+                    <br><br>
+
+                    <label for="ring-material">Ring Material: </label>
+                    <select name="ring-material" id="ring-material-dropdown">
+                        <option value="gold">Gold</option>
+                        <option value="mauve" selected>Mauve</option>
+                        <option value="pthalo">Pthalo</option>
+                        <option value="silver">Silver</option>
+                    </select>
+
+                    <br><br>
+
+                    Shininess:<br>
+                    1 <input type="range" id="ring-shininess-slider" min="1" max="100" step="1" value="100"> 100
+                </div>
+            </td>
+        <tr>
+            
+        </tv>
+    </table>
+    
+    
+    <br>
+
+    <div>
+        <strong>Author:</strong> Cristion Domingeuz
+        &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp
+        <strong>Date:</strong> 8 April 2022
+
+        <br><br>
+
+        <strong>Description:</strong></br>
+        This program renders two surfaces of rotation (SORs): cylinder, ring. SORs are constructed by rotating a curve on some plane around an axis. The rendered SORs were
+        each constructed by calculating coordinates of limited vertices on a curve and duplicating those vertices around the y-axis a fixed set of times; all the vertices
+        were then connected as rectangles, which were two triangles in disguise.
+
+        <br><br>
+
+        The surfaces are Gouraud shaded where Phong illumination at each vertex is based on their exact normal. Color at each vertex is dicted by the light position; the ambient,
+        diffuse, and specular properties of the light; and the ambient reflectance, diffuse reflectance, specular reflectance, and shininess of the material assigned to the vertex.
+
+        <br></br>
+
+        The viewer is always facing the cylinder and rings due to a constantly updated Viewing Matrix positioning the SORs in front of the viewer. The viewer can only alter their
+        distance from the SORs or the angles they observe the SORs from. On top of the Viewing Matrix is a Projection Matrix, which is calculated by the FOV and aspect ratio, as well
+        as the near and far clipping distances.
+
+        <br><br>
+
+        Other than those essential components, there are multiple rings rotating around the cylinder. To achieve such an effect, each ring is translated on the x-axis the
+        same amount whilst their y-position differs based on the amount of rings present. Then each ring is rotated around the y-axis where the angle is a combination
+        of time and a unique offset.
+    </div>
+</body>
+</html>
