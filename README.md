@@ -1,4 +1,8 @@
 # Surfaces of Rotation Lighting
+## Execution
+Clone the repository or download all the files, then open 'index.html'.
+
+## Description
 This program renders two surfaces of rotation (SORs): cylinder, ring. SORs are constructed by rotating a curve on some plane around an axis. The rendered SORs were each constructed by calculating coordinates of limited vertices on a curve and duplicating those vertices around the y-axis a fixed set of times; all the vertices were then connected as rectangles, which were two triangles in disguise.
 
 The surfaces are Gouraud shaded where Phong illumination at each vertex is based on their exact normal. Color at each vertex is dicted by the light position; the ambient, diffuse, and specular properties of the light; and the ambient reflectance, diffuse reflectance, specular reflectance, and shininess of the material assigned to the vertex.
