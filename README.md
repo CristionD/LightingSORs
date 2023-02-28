@@ -1,4 +1,4 @@
-# Surfaces of Rotation Lighting
+# Lighting Surfaces of Revolution
 ## Execution
 Clone the repository or download all the files, then open 'index.html'.
 
